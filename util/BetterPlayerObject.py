@@ -177,6 +177,15 @@ class BetterPlayerObject(PlayerObject):
         comp_player = self.part.GetApi().GetEngineCompFactory().CreatePlayer(self.GetPlayerId())
         comp_player.SetPlayerGameType(mode)
 
+    def get_game_type(self):
+        """获取玩家游戏类型"""
+        comp_player = self.part.GetApi().GetEngineCompFactory().CreatePlayer(self.GetPlayerId())
+        return comp_player.GetPlayerGameType()
+
+    def is_spectator(self):
+        """判断玩家是否为观察者状态"""
+        return self.get_game_type() == 6
+
     def clear_inventory(self):
         comp = self.CreateItemComponent(self.GetPlayerId())
 
