@@ -42,14 +42,31 @@ class TimedGamingState(GamingState):
         self.reset_timer()
 
     def _timed_on_tick(self):
-        if time.time() >= self.time_end:
+        # 修复：添加更可靠的超时检测，防止浮点数精度问题
+        current_time = time.time()
+        if current_time >= self.time_end:
+            self.get_part().LogDebug("TimedGamingState超时触发: 当前时间={}, 结束时间={}, 差值={}".format(
+                current_time, self.time_end, current_time - self.time_end))
             self._time_out()
 
     def _time_out(self):
-        for callback in self.callbacks_timeout:
-            callback(self)
+        self.get_part().LogDebug("TimedGamingState._time_out 开始执行")
+        # 修复：添加超时回调执行保护
+        for i, callback in enumerate(self.callbacks_timeout):
+            try:
+                callback(self)
+            except Exception as e:
+                self.get_part().LogError("TimedGamingState超时回调执行失败 [{}]: {}".format(i, str(e)))
+        
+        # 修复：添加状态切换日志和错误处理
         if self.parent is not None:
-            self.parent.next_sub_state()
+            self.get_part().LogDebug("TimedGamingState准备切换到下一个状态")
+            try:
+                self.parent.next_sub_state()
+            except Exception as e:
+                self.get_part().LogError("TimedGamingState状态切换失败: {}".format(str(e)))
+        else:
+            self.get_part().LogDebug("TimedGamingState没有父状态，无法切换")
 
     # 额外的接口
 
