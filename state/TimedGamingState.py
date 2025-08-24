@@ -10,6 +10,8 @@ class TimedGamingState(GamingState):
         self.duration = duration
         self.time_end = 0
         self.callbacks_timeout = list()
+        # 修复：初始化超时触发标记
+        self._timeout_triggered = False
         self.with_enter(self._timed_on_enter)
         self.with_tick(self._timed_on_tick)
 
@@ -28,6 +30,8 @@ class TimedGamingState(GamingState):
         """
         self.get_part().LogDebug("reset_timer {} + {}".format(str(time.time()), str(self.duration)))
         self.time_end = time.time() + self.duration
+        # 修复：重置超时触发标记
+        self._timeout_triggered = False
 
     def with_time_out(self, callback):
         """
@@ -51,6 +55,15 @@ class TimedGamingState(GamingState):
 
     def _time_out(self):
         self.get_part().LogDebug("TimedGamingState._time_out 开始执行")
+        
+        # 修复：添加防重复触发机制
+        if hasattr(self, '_timeout_triggered') and self._timeout_triggered:
+            self.get_part().LogDebug("TimedGamingState._time_out 超时已触发，跳过重复执行")
+            return
+        
+        # 标记超时已触发
+        self._timeout_triggered = True
+        
         # 修复：添加超时回调执行保护
         for i, callback in enumerate(self.callbacks_timeout):
             try:
@@ -62,11 +75,40 @@ class TimedGamingState(GamingState):
         if self.parent is not None:
             self.get_part().LogDebug("TimedGamingState准备切换到下一个状态")
             try:
-                self.parent.next_sub_state()
+                # 修复：添加状态一致性检查
+                if self._check_state_consistency_before_switch():
+                    self.parent.next_sub_state()
+                else:
+                    self.get_part().LogWarning("TimedGamingState状态一致性检查失败，取消状态切换")
             except Exception as e:
                 self.get_part().LogError("TimedGamingState状态切换失败: {}".format(str(e)))
         else:
             self.get_part().LogDebug("TimedGamingState没有父状态，无法切换")
+
+    def _check_state_consistency_before_switch(self):
+        """在状态切换前检查状态一致性"""
+        try:
+            # 检查当前状态是否仍然有效
+            if not self.is_state_running():
+                self.get_part().LogDebug("TimedGamingState状态一致性检查：状态机已停止运行")
+                return False
+            
+            # 检查父状态是否仍然有效
+            if self.parent is None:
+                self.get_part().LogDebug("TimedGamingState状态一致性检查：父状态不存在")
+                return False
+            
+            # 检查是否仍在正确的子状态
+            if hasattr(self.parent, 'current_sub_state') and self.parent.current_sub_state != self:
+                self.get_part().LogDebug("TimedGamingState状态一致性检查：当前不在父状态的活跃子状态中")
+                return False
+            
+            self.get_part().LogDebug("TimedGamingState状态一致性检查通过")
+            return True
+            
+        except Exception as e:
+            self.get_part().LogError("TimedGamingState状态一致性检查失败: {}".format(str(e)))
+            return False
 
     # 额外的接口
 
