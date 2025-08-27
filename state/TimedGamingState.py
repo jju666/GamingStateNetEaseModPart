@@ -88,26 +88,29 @@ class TimedGamingState(GamingState):
     def _check_state_consistency_before_switch(self):
         """在状态切换前检查状态一致性"""
         try:
+            part = self.get_part()
+            
             # 检查当前状态是否仍然有效
             if not self.is_state_running():
-                self.get_part().LogDebug("TimedGamingState状态一致性检查：状态机已停止运行")
+                part.LogDebug("TimedGamingState状态一致性检查：状态已停止运行")
                 return False
             
-            # 检查父状态是否仍然有效
+            # 检查父状态是否存在
             if self.parent is None:
-                self.get_part().LogDebug("TimedGamingState状态一致性检查：父状态不存在")
+                part.LogDebug("TimedGamingState状态一致性检查：父状态不存在")
                 return False
             
-            # 检查是否仍在正确的子状态
+            # 检查是否仍在正确的子状态中
             if hasattr(self.parent, 'current_sub_state') and self.parent.current_sub_state != self:
-                self.get_part().LogDebug("TimedGamingState状态一致性检查：当前不在父状态的活跃子状态中")
+                part.LogDebug("TimedGamingState状态一致性检查：当前子状态已改变")
                 return False
             
-            self.get_part().LogDebug("TimedGamingState状态一致性检查通过")
+            part.LogDebug("TimedGamingState状态一致性检查通过")
             return True
             
         except Exception as e:
-            self.get_part().LogError("TimedGamingState状态一致性检查失败: {}".format(str(e)))
+            part = self.get_part()
+            part.LogError("TimedGamingState状态一致性检查失败: {}".format(str(e)))
             return False
 
     # 额外的接口
