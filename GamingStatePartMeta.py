@@ -5,5 +5,5 @@ from Preset.Model import PartBaseMeta
 
 @sunshine_class_meta
 class GamingStatePartMeta(PartBaseMeta):
-	CLASS_NAME = "GamingStatePart"
-	PROPERTIES = {}
+    CLASS_NAME = "GamingStatePart"
+    PROPERTIES = {}
